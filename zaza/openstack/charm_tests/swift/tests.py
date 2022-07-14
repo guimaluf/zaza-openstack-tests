@@ -20,10 +20,11 @@ import logging
 import pprint
 import tenacity
 
-import zaza.model
+import zaza.model as zaza_model
 import zaza.openstack.charm_tests.test_utils as test_utils
 import zaza.openstack.charm_tests.glance.setup as glance_setup
 import zaza.openstack.configure.guest
+# import zaza.openstack.utilities.generic as zaza_utils
 import zaza.openstack.utilities.openstack as openstack_utils
 import zaza.openstack.utilities.swift as swift_utils
 
@@ -43,6 +44,7 @@ class SwiftImageCreateTest(test_utils.OpenStackBaseTest):
 
         cls.swift = openstack_utils.get_swift_session_client(
             swift_session)
+
         cls.glance_client = openstack_utils.get_glance_session_client(
             cls.keystone_session)
 
@@ -52,6 +54,9 @@ class SwiftImageCreateTest(test_utils.OpenStackBaseTest):
         headers, containers = self.swift.get_account()
         self.assertEqual(len(containers), 1)
         container_name = containers[0].get('name')
+
+        logging.debug('swift session {}'.format(self.swift))
+
         headers, objects = self.swift.get_container(container_name)
         images = openstack_utils.get_images_by_name(
             self.glance_client,
@@ -232,7 +237,22 @@ class SwiftProxyMultiZoneTests(test_utils.OpenStackBaseTest):
 class SwiftStorageTests(test_utils.OpenStackBaseTest):
     """Tests specific to swift storage."""
 
+# @classmethod
+# def setUpClass(cls):
+#     super(SwiftStorageTests, cls).setUpClass()
+#     cls.loop_devs = {}   # Maps disk -> loop device
+#     for disk in (x.entity_id for x in zaza_model.get_units('swift-storage')):
+#         loop_dev = zaza_utils.add_loop_device(disk, size=10).get('Stdout')
+#         cls.loop_devs[disk] = loop_dev
+
+# @classmethod
+# def tearDownClass(cls):
+#     """Run the swift's common class teardown."""
+#     for disk, loop_dev in cls.loop_devs.items():
+#         zaza_utils.remove_loop_device(disk, loop_dev)
+
     def test_901_pause_resume(self):
+        pass
         """Run pause and resume tests.
 
         Pause service and check services are stopped then resume and check
@@ -262,6 +282,24 @@ class SwiftStorageTests(test_utils.OpenStackBaseTest):
 
         with self.pause_resume(services):
             logging.info("Testing pause resume")
+
+    def test_list_disks(self):
+        """Test the list-disks action.
+
+        The list-disks action execute.
+        """
+        # add-disk,blacklist-add-disk,blacklist-remove-disk,
+        action_obj = zaza_model.run_action(
+            self.lead_unit,
+            'list-disks',
+            model_name=self.model_name)
+
+        breakpoint()
+        logging.debug('Result of action: {}'.format(action_obj))
+        self.assertEqual('completed', action_obj.status)
+        self.assertEqual(1, len(list(action_obj.results.disks)))
+        self.assertEqual(0, len(list(action_obj.results.blacklist)))
+        self.assertEqual(0, len(list(action_obj.results['non-pristine'])))
 
 
 class SwiftGlobalReplicationTests(test_utils.OpenStackBaseTest):
