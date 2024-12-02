@@ -550,6 +550,21 @@ class MySQLInnoDBClusterTests(MySQLCommonTests):
             .format(_key, _value, action.data))
         logging.info("Passed set cluster option action test.")
 
+    def test_200_debian_sys_maint_password(self):
+        """Test debian-sys-maint user access for non-leader unit."""
+        _leader, _non_leaders = generic_utils.get_leaders_and_non_leaders(
+            self.application_name)
+
+        cmd = "sudo /usr/bin/mysqladmin \
+            --defaults-file=/etc/mysql/debian.cnf ping"
+        logging.info(
+            f"Running on non-leader: {cmd}"
+        )
+        result = zaza.model.run_on_unit(_non_leaders[0], cmd)
+        logging.info(result)
+
+        assert 'Stderr' not in result
+
 
 class MySQLInnoDBClusterRotatePasswordTests(MySQLCommonTests):
     """Mysql-innodb-cluster charm tests.
